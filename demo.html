@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){try{var t=localStorage.getItem('pitwall-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<title>Pit Wall — Demo</title>
+<link rel="stylesheet" href="assets/style.css?v=9">
+<style>
+  .demo-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--radius-md);
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .demo-banner p { font-size: 13.5px; color: var(--text); }
+  .demo-banner strong { color: var(--accent-text); }
+
+  .demo-section[hidden] { display: none; }
+
+  /* ===== Checklist (copied from pit-checklist.html for visual parity) ===== */
+  .checklist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 8px; margin-bottom: 10px; }
+  .checklist-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent-text); cursor: pointer; flex-shrink: 0; }
+  .checklist-item label { flex: 1; font-size: 14.5px; cursor: pointer; }
+  .checklist-item.checked label { color: var(--text-muted); text-decoration: line-through; }
+
+  /* ===== Roster member cards (copied from roster.html) ===== */
+  .code-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: 5px; color: var(--accent-text); }
+  .member-card {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .member-avatar {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 800; font-size: 15px;
+  }
+  .member-avatar.owner { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .member-main { flex: 1; min-width: 160px; }
+  .member-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14.5px; font-weight: 700; }
+  .member-meta { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ===== Scouting skill chart (copied from scouting.html) ===== */
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-label { width: 60px; flex-shrink: 0; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted); }
+  .bar-track { flex: 1; height: 18px; background: rgba(163, 193, 231, 0.08); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .bar-count { width: 24px; flex-shrink: 0; font-family: var(--font-mono); font-size: 12.5px; text-align: right; }
+
+  /* ===== Schedule match cards (copied from schedule.html) ===== */
+  .match-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px 18px; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .match-card.our-match { border-color: var(--accent-border); background: var(--accent-soft); }
+  .match-num { font-family: var(--font-mono); font-size: 13.5px; color: var(--text-muted); min-width: 70px; }
+  .match-time { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted); min-width: 90px; }
+  .alliance-block { display: flex; gap: 18px; flex: 1; flex-wrap: wrap; }
+  .alliance { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .alliance-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; }
+  .alliance-label.red { background: var(--danger-soft); color: var(--danger-text); border-color: var(--danger-border); }
+  .alliance-label.blue { background: var(--info-soft); color: var(--info-text); border-color: var(--info-border); }
+  .team-tag { font-family: var(--font-mono); }
+  .team-tag.mine { color: var(--accent-text); font-weight: 700; }
+
+  /* ===== Chat (simplified for demo) ===== */
+  .demo-chat-card { display: flex; flex-direction: column; height: 480px; padding: 0; overflow: hidden; }
+  .demo-chat-messages { flex: 1; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .demo-msg-row { display: flex; gap: 10px; align-items: flex-end; }
+  .demo-msg-row.user { justify-content: flex-end; }
+  .demo-avatar {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 800; font-size: 10px;
+  }
+  .demo-bubble { max-width: 78%; padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.55; }
+  .demo-bubble.user { background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+  .demo-bubble.assistant { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+  .demo-chat-input-bar { border-top: 1px solid var(--border); padding: 14px 16px; display: flex; gap: 10px; flex-shrink: 0; }
+  .demo-chat-input-bar input {
+    flex: 1; padding: 11px 14px; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 20px; color: var(--text); font-size: 14px; font-family: var(--font-body); outline: none;
+  }
+  .demo-chat-input-bar input:focus { border-color: var(--accent-text); }
+
+  .signup-cta {
+    text-align: center; margin-top: 30px; padding: 26px; background: var(--surface); border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+  }
+  .signup-cta h3 { font-size: 17px; margin-bottom: 8px; }
+  .signup-cta p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+  <div id="toastContainer" aria-live="polite" aria-atomic="false"></div>
+
+  <div class="app-shell">
+    <a href="#mainContent" class="skip-link">Skip to main content</a>
+    <div class="mobile-topbar">
+      <div class="brand-mini"><span class="mark" aria-hidden="true">PW</span> Pit Wall — Demo</div>
+      <button class="hamburger-btn" id="navHamburger" aria-label="Open menu" aria-expanded="false" aria-controls="demoSidebar">☰</button>
+    </div>
+    <div class="sidebar-scrim" id="sidebarScrim"></div>
+    <aside class="sidebar" id="demoSidebar">
+      <div class="sidebar-brand">
+        <span class="mark" aria-hidden="true">PW</span>
+        <span class="name">Pit Wall<small>Demo Mode</small></span>
+      </div>
+      <nav class="sidebar-nav" aria-label="Demo sections" id="demoNav"></nav>
+      <div class="sidebar-foot">
+        <span class="sidebar-team-chip">#90210 FTC</span>
+        <button class="theme-toggle" id="themeToggle" aria-label="Switch to light theme">
+          <span class="icon-sun" aria-hidden="true">☀️</span>
+          <span class="icon-moon" aria-hidden="true">🌙</span>
+          <span class="theme-toggle-label">Theme</span>
+        </button>
+        <a href="index.html" class="btn btn-primary btn-block" style="text-align:center; text-decoration:none;">Sign Up / Log In</a>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <main class="page" id="mainContent" tabindex="-1">
+        <div class="demo-banner">
+          <p>🎮 <strong>You're viewing example data.</strong> Nothing here is saved, and no real AI calls are made — everything resets if you reload.</p>
+          <a href="index.html" class="btn btn-primary btn-sm">Sign Up →</a>
+        </div>
+
+        <!-- DASHBOARD -->
+        <section class="demo-section" data-section="dashboard">
+          <div class="page-head">
+            <div>
+              <h1>Welcome back, <span style="color:var(--text-muted);">Ridgemont Robotics</span></h1>
+              <p>This is what your team's Pit Wall looks like once it's set up.</p>
+            </div>
+          </div>
+          <div class="info-strip">
+            <div class="info-item"><span class="info-label">Team Number</span><span class="info-value accent">#90210</span></div>
+            <div class="info-item"><span class="info-label">Team Name</span><span class="info-value">Ridgemont Robotics</span></div>
+            <div class="info-item"><span class="info-label">Competition</span><span class="info-value">FTC</span></div>
+          </div>
+          <h2 class="section-label">Quick Actions</h2>
+          <div class="card-grid">
+            <a class="action-card" data-goto="robot"><div class="card-icon">🤖</div><h3>Robot Profile</h3><p>Log your drivetrain, scoring mechanism, and autonomous routine.</p><span class="cta">Open profile →</span></a>
+            <a class="action-card" data-goto="chat"><div class="card-icon">💬</div><h3>AI Chat</h3><p>Ask about strategy, your robot, or the competition.</p><span class="cta">Start chatting →</span></a>
+            <a class="action-card" data-goto="scouting"><div class="card-icon">🔍</div><h3>Scouting</h3><p>Log what you see about other teams at events.</p><span class="cta">Open scouting →</span></a>
+            <a class="action-card" data-goto="events"><div class="card-icon">🏆</div><h3>Events</h3><p>See past results and AI analysis of where to improve.</p><span class="cta">View events →</span></a>
+          </div>
+          <h2 class="section-label">Robot Snapshot</h2>
+          <div class="card">
+            <div class="entry-grid">
+              <div><span class="info-label">Drivetrain</span><span class="info-value">Mecanum, 4x 5203 motors, 1:1 gear ratio</span></div>
+              <div><span class="info-label">Game Piece Mechanism</span><span class="info-value">Dual-intake conveyor feeding a turret-mounted flywheel launcher</span></div>
+              <div><span class="info-label">Autonomous Routine</span><span class="info-value">Scores 3 preloaded pieces, then parks in the observation zone</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ROBOT PROFILE -->
+        <section class="demo-section" data-section="robot" hidden>
+          <div class="page-head"><div><h1>Your Robot</h1><p>Feeds directly into AI Chat and Event analysis — try editing a field below.</p></div></div>
+          <form class="card" id="demoRobotForm" onsubmit="return false;">
+            <div class="field"><label for="demoDrivetrain">Drivetrain</label><input type="text" id="demoDrivetrain" value="Mecanum, 4x 5203 motors, 1:1 gear ratio for max speed"></div>
+            <div class="field"><label for="demoMechanism">Game piece mechanism</label><textarea id="demoMechanism">Dual-intake conveyor feeding a turret-mounted flywheel launcher</textarea></div>
+            <div class="field"><label for="demoAuto">Autonomous routine</label><textarea id="demoAuto">Scores 3 preloaded pieces from the left starting position, then parks in the observation zone</textarea></div>
+            <div class="field"><label for="demoNotes">Additional notes</label><textarea id="demoNotes">Known issue: intake occasionally jams on angled pickups — reinforcing the intake guide before next event.</textarea></div>
+            <div class="flex items-center gap-12"><button type="button" class="btn btn-primary" id="demoSaveRobot">Save Profile</button><span class="status-msg" id="demoRobotStatus"></span></div>
+          </form>
+        </section>
+
+        <!-- SCOUTING -->
+        <section class="demo-section" data-section="scouting" hidden>
+          <div class="page-head"><div><h1>Scouting</h1><p>Log what you see about other teams — try adding one below.</p></div></div>
+          <div class="card" style="margin-bottom:24px;">
+            <h2 style="font-size:16px; font-weight:700; margin-bottom:14px;">New Scouting Entry</h2>
+            <div class="hint" style="margin-bottom:14px;">Only the team number is required — fill in what you know.</div>
+            <div class="form-row">
+              <div class="field"><label for="demoScoutNum">Team number</label><input type="text" id="demoScoutNum" placeholder="e.g. 24680"></div>
+              <div class="field"><label for="demoScoutName">Team name</label><input type="text" id="demoScoutName" placeholder="e.g. Circuit Breakers"></div>
+            </div>
+            <div class="field"><label for="demoScoutNotes">Notes</label><textarea id="demoScoutNotes" placeholder="What did you notice about them?"></textarea></div>
+            <button type="button" class="btn btn-primary" id="demoAddScout">Save Entry</button>
+            <div class="status-msg" id="demoScoutStatus"></div>
+          </div>
+          <div class="card" style="margin-bottom:24px;">
+            <h2 style="font-size:16px; font-weight:700; margin-bottom:14px;">Driver Skill Overview</h2>
+            <div id="demoSkillChart"></div>
+          </div>
+          <h2 class="section-label">Logged Teams</h2>
+          <div id="demoEntriesList"></div>
+        </section>
+
+        <!-- SCHEDULE -->
+        <section class="demo-section" data-section="schedule" hidden>
+          <div class="page-head"><div><h1>Match Schedule</h1><p>Pulled live from FIRST's official system in the real app.</p></div></div>
+          <div id="demoMatchList"></div>
+        </section>
+
+        <!-- EVENTS -->
+        <section class="demo-section" data-section="events" hidden>
+          <div class="page-head"><div><h1>Events</h1><p>Past results with AI-generated performance analysis.</p></div></div>
+          <div class="card" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+              <div>
+                <div style="font-size:16px; font-weight:700;">Sheldon College Qualifier</div>
+                <div class="mono faint" style="font-size:12.5px; margin-top:4px;">March 14, 2026 — Sheldon College Sports Hall</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:22px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+              <div><span class="info-label">Record</span><br><span class="mono" style="font-size:15px; color:var(--accent-text);">2-1-0</span></div>
+              <div><span class="info-label">Matches Played</span><br><span class="mono" style="font-size:15px;">3</span></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-12" style="margin-bottom:16px;">
+            <button type="button" class="btn btn-primary btn-sm" id="demoAnalysisBtn">Get AI Performance Analysis</button>
+            <span class="analysis-hint" style="font-size:12px; color:var(--text-muted);">Uses match results, scouting notes, and notebook entries.</span>
+          </div>
+          <div id="demoAnalysisBlock"></div>
+        </section>
+
+        <!-- AI CHAT -->
+        <section class="demo-section" data-section="chat" hidden>
+          <div class="page-head"><div><h1>AI Chat</h1><p>Ask about strategy, your robot, or the competition — try it below.</p></div></div>
+          <div class="card demo-chat-card">
+            <div class="demo-chat-messages" id="demoChatMessages"></div>
+            <div class="demo-chat-input-bar">
+              <input type="text" id="demoChatInput" placeholder="Ask something, e.g. 'how do we improve autonomous?'" aria-label="Message">
+              <button type="button" class="btn btn-primary" id="demoChatSend">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTEBOOK -->
+        <section class="demo-section" data-section="notebook" hidden>
+          <div class="page-head"><div><h1>Engineering Notebook</h1><p>Log entries and get instant AI feedback on each one.</p></div></div>
+          <div id="demoNotebookList"></div>
+        </section>
+
+        <!-- ROSTER -->
+        <section class="demo-section" data-section="roster" hidden>
+          <div class="page-head"><div><h1>Team Roster</h1><p>Everyone signed into your team, with a join code to invite more.</p></div></div>
+          <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; background:var(--accent-soft); border-color:var(--accent-border); margin-bottom:24px;">
+            <div><div class="info-label" style="margin-bottom:4px;">Join code</div><div class="code-value">7K2QXM</div></div>
+            <button type="button" class="btn btn-outline btn-sm" disabled>Regenerate</button>
+          </div>
+          <h2 class="section-label">Members (3)</h2>
+          <div id="demoMembersList"></div>
+        </section>
+
+        <!-- CHECKLIST -->
+        <section class="demo-section" data-section="checklist" hidden>
+          <div class="page-head"><div><h1>Pit Checklist</h1><p>Check items off before you head to competition — try it below.</p></div></div>
+          <div class="checklist-card" id="demoChecklistCard"></div>
+        </section>
+
+        <div class="signup-cta">
+          <h3>Ready to set this up for your own team?</h3>
+          <p>Create your team's account in under a minute — no credit card, no setup required.</p>
+          <a href="index.html" class="btn btn-primary">Sign Up Free →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+  <script type="module">
+    // This page intentionally does NOT import assets/app.js — that module
+    // pulls in the Firebase Firestore SDK from gstatic.com even though the
+    // demo never touches Firebase, which would make an otherwise fully
+    // static, zero-signup page depend on an external CDN it doesn't need.
+    // These are plain copies of app.js's escapeHtml/toast/theme helpers.
+
+    function escapeHtml(str) {
+      return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      if (!window.marked || !window.DOMPurify) return escapeHtml(text);
+      return window.DOMPurify.sanitize(window.marked.parse(text, { breaks: true }));
+    }
+
+    function toast(message, type = 'success', duration = 3500) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.setAttribute('role', 'status');
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 250);
+      }, duration);
+    }
+
+    const THEME_STORAGE_KEY = 'pitwall-theme';
+    function getTheme() {
+      return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem(THEME_STORAGE_KEY, theme); } catch (err) { /* private browsing etc */ }
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+
+    setTheme(getTheme());
+    document.getElementById('themeToggle').addEventListener('click', () => setTheme(getTheme() === 'light' ? 'dark' : 'light'));
+
+    // ===== sidebar nav (mirrors the real app's, but switches sections instead of pages) =====
+    const NAV_ITEMS = [
+      { key: 'dashboard', icon: '🏁', label: 'Dashboard' },
+      { key: 'robot', icon: '🤖', label: 'Robot' },
+      { key: 'scouting', icon: '🔍', label: 'Scouting' },
+      { key: 'schedule', icon: '📅', label: 'Schedule' },
+      { key: 'events', icon: '🏆', label: 'Events' },
+      { key: 'chat', icon: '💬', label: 'AI Chat' },
+      { key: 'notebook', icon: '📓', label: 'Notebook' },
+      { key: 'roster', icon: '👥', label: 'Roster' },
+      { key: 'checklist', icon: '✅', label: 'Checklist' }
+    ];
+    const navRoot = document.getElementById('demoNav');
+    navRoot.innerHTML = NAV_ITEMS.map(i => `
+      <a href="#" data-goto="${i.key}" class="${i.key === 'dashboard' ? 'active' : ''}">
+        <span class="icon" aria-hidden="true">${i.icon}</span>${i.label}
+      </a>`).join('');
+
+    const sidebar = document.getElementById('demoSidebar');
+    const scrim = document.getElementById('sidebarScrim');
+    const hamburger = document.getElementById('navHamburger');
+    function setSidebarOpen(open) {
+      sidebar.classList.toggle('open', open);
+      scrim.classList.toggle('open', open);
+      hamburger.setAttribute('aria-expanded', String(open));
+    }
+    hamburger.addEventListener('click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+    scrim.addEventListener('click', () => setSidebarOpen(false));
+
+    function showSection(key) {
+      document.querySelectorAll('.demo-section').forEach(s => { s.hidden = s.dataset.section !== key; });
+      document.querySelectorAll('#demoNav a').forEach(a => a.classList.toggle('active', a.dataset.goto === key));
+      setSidebarOpen(false);
+      document.getElementById('mainContent').scrollIntoView({ block: 'start' });
+    }
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-goto]');
+      if (!target) return;
+      e.preventDefault();
+      showSection(target.dataset.goto);
+    });
+
+    // ===== demo data =====
+    const scoutingEntries = [
+      { num: '54321', name: 'Vortex Robotics', event: 'Sheldon College Qualifier — Q8', drivetrain: 'Tank drive, slower turning', scoring: 'Consistent mid-goal scorer, ~4 pieces/match', auto: 'Parks only, no scoring auto', rating: '4', notes: 'Strong defense, watch for blocking near the goal.' },
+      { num: '13579', name: 'Iron Eagles', event: 'Sheldon College Qualifier — Q12', drivetrain: 'Mecanum, fast strafing', scoring: 'High-volume scorer but occasional missed shots under pressure', auto: 'Scores 2 pieces + parks', rating: '5', notes: 'Best driver at the event so far — good alliance pick.' }
+    ];
+
+    function renderScoutingEntries() {
+      document.getElementById('demoEntriesList').innerHTML = scoutingEntries.map(e => `
+        <div class="entry-card">
+          <div class="entry-head">
+            <div>
+              <div class="entry-title"><span class="num">#${escapeHtml(e.num)}</span>${escapeHtml(e.name)}</div>
+              <div class="entry-meta">${escapeHtml(e.event)}</div>
+            </div>
+            <div class="entry-actions">
+              <button type="button" class="btn btn-outline btn-sm" disabled>Edit</button>
+              <button type="button" class="btn btn-outline btn-sm" disabled>Delete</button>
+            </div>
+          </div>
+          <div class="entry-grid">
+            <div><span class="info-label">Drivetrain</span><span class="info-value">${escapeHtml(e.drivetrain)}</span></div>
+            <div><span class="info-label">Driver Skill</span><span class="info-value">${escapeHtml(e.rating)}/5</span></div>
+            <div><span class="info-label">Scoring</span><span class="info-value">${escapeHtml(e.scoring)}</span></div>
+            <div><span class="info-label">Autonomous</span><span class="info-value">${escapeHtml(e.auto)}</span></div>
+            <div><span class="info-label">Notes</span><span class="info-value">${escapeHtml(e.notes)}</span></div>
+          </div>
+        </div>`).join('');
+      renderSkillChart();
+    }
+
+    function renderSkillChart() {
+      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      scoutingEntries.forEach(e => { if (counts[e.rating] !== undefined) counts[e.rating]++; });
+      const max = Math.max(...Object.values(counts), 1);
+      document.getElementById('demoSkillChart').innerHTML = [5, 4, 3, 2, 1].map(rating => {
+        const count = counts[rating];
+        const pct = Math.round((count / max) * 100);
+        return `<div class="bar-row"><span class="bar-label">${rating} star${rating === 1 ? '' : 's'}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="bar-count">${count}</span></div>`;
+      }).join('');
+    }
+    renderScoutingEntries();
+
+    document.getElementById('demoAddScout').addEventListener('click', () => {
+      const num = document.getElementById('demoScoutNum').value.trim();
+      const status = document.getElementById('demoScoutStatus');
+      if (!num) {
+        status.textContent = 'Enter a team number first.';
+        status.className = 'status-msg error';
+        return;
+      }
+      scoutingEntries.unshift({
+        num, name: document.getElementById('demoScoutName').value.trim() || 'Unnamed team',
+        event: 'Sheldon College Qualifier', drivetrain: '—', scoring: '—', auto: '—', rating: '',
+        notes: document.getElementById('demoScoutNotes').value.trim() || '—'
+      });
+      ['demoScoutNum', 'demoScoutName', 'demoScoutNotes'].forEach(id => document.getElementById(id).value = '');
+      status.textContent = 'Entry saved.';
+      status.className = 'status-msg success';
+      toast('Entry saved (demo — not persisted).', 'success');
+      renderScoutingEntries();
+    });
+
+    document.getElementById('demoSaveRobot').addEventListener('click', () => {
+      const status = document.getElementById('demoRobotStatus');
+      status.textContent = 'Saved.';
+      status.className = 'status-msg success';
+      toast('Robot profile saved (demo — not persisted).', 'success');
+    });
+
+    // ===== schedule =====
+    const matches = [
+      { num: 1, time: '9:00 AM', red: ['90210', '54321'], blue: ['13579', '24680'], mine: 'red', result: 'win' },
+      { num: 2, time: '9:20 AM', red: ['11111', '22222'], blue: ['90210', '33333'], mine: 'blue', result: 'loss' },
+      { num: 3, time: '9:40 AM', red: ['90210', '44444'], blue: ['55555', '66666'], mine: 'red', result: 'win' }
+    ];
+    document.getElementById('demoMatchList').innerHTML = matches.map(m => `
+      <div class="match-card our-match">
+        <span class="match-num">Match ${m.num} <span class="badge ${m.result === 'win' ? 'success' : 'danger'} badge-inline">${m.result === 'win' ? '✓ Win' : '✕ Loss'}</span></span>
+        <span class="match-time">${m.time}</span>
+        <div class="alliance-block">
+          <div class="alliance"><span class="alliance-label red">Red</span> ${m.red.map(t => `<span class="team-tag${t === '90210' ? ' mine' : ''}">#${t}</span>`).join(' ')}</div>
+          <div class="alliance"><span class="alliance-label blue">Blue</span> ${m.blue.map(t => `<span class="team-tag${t === '90210' ? ' mine' : ''}">#${t}</span>`).join(' ')}</div>
+        </div>
+      </div>`).join('');
+
+    // ===== events / AI analysis =====
+    const CANNED_ANALYSIS = `## Driver
+Your driver went 2-1 across three qualification matches. The 58-41 win in Match 1 came from fast, consistent cycle times rather than any one big play — keep leaning on that rhythm. The Match 2 loss (30-47) lines up with facing a much stronger alliance on paper; nothing in the driving itself stands out as the cause. Focus practice time on defensive positioning for matches where you're the underdog on paper.
+
+## Programmer
+Autonomous is scoring 3 preloaded pieces reliably, which is a solid, repeatable baseline. Since driver skill is already strong, the next-highest-value target is extending autonomous to attempt a 4th piece or a more aggressive parking position, since every match here was decided by less than 20 points.
+
+## Builder
+The intake jamming issue noted in your Robot Profile didn't show up as a scoring problem in these matches, but it's worth resolving before it does — a single jam mid-match at this event's margins could flip a result. Prioritise the intake guide reinforcement mentioned in your notes before the next event.`;
+
+    document.getElementById('demoAnalysisBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const block = document.getElementById('demoAnalysisBlock');
+      btn.disabled = true;
+      btn.textContent = 'Analysing...';
+      block.innerHTML = `<div class="ai-block loading"><div class="ai-label"><span class="ai-dot"></span>AI ANALYSIS</div><div class="ai-body">Reviewing match results and notes from this event...</div></div>`;
+      await new Promise(r => setTimeout(r, 1400));
+      block.innerHTML = `<div class="ai-block"><div class="ai-label"><span class="ai-dot"></span>AI ANALYSIS</div><div class="ai-body md">${renderMarkdown(CANNED_ANALYSIS)}</div><div class="generated-at">Example output — the real app generates this from your own match data.</div></div>`;
+      btn.disabled = false;
+      btn.textContent = 'Regenerate Analysis';
+    });
+
+    // ===== chat =====
+    const chatMessages = [
+      { role: 'user', text: 'How should we improve our autonomous?' },
+      { role: 'assistant', text: 'Based on your Robot Profile, you\'re currently scoring 3 preloaded pieces and parking. Since your driver rating is strong (you went 2-1 last event), the highest-value next step is extending autonomous to attempt a 4th piece — your matches were decided by less than 20 points each, so a bit more autonomous scoring could swing close games.' }
+    ];
+    function renderChat() {
+      document.getElementById('demoChatMessages').innerHTML = chatMessages.map(m => `
+        <div class="demo-msg-row ${m.role}">
+          ${m.role === 'assistant' ? '<div class="demo-avatar">AI</div>' : ''}
+          <div class="demo-bubble ${m.role}">${escapeHtml(m.text)}</div>
+        </div>`).join('');
+      const container = document.getElementById('demoChatMessages');
+      container.scrollTop = container.scrollHeight;
+    }
+    renderChat();
+
+    function cannedChatReply(text) {
+      const t = text.toLowerCase();
+      if (t.includes('auto')) return "Your autonomous currently scores 3 preloaded pieces then parks. Since it's already reliable, extending it to a 4th piece is the next highest-value change given how close your matches have been.";
+      if (t.includes('scout') || /\d{3,5}/.test(t)) return "Checking your scouting log — Iron Eagles (#13579) rate as your best-observed opponent so far (5/5 driver skill, high-volume scorer), while Vortex Robotics (#54321) lean on defense over scoring. Worth prioritising a scouting note before you play either.";
+      if (t.includes('drivetrain') || t.includes('robot')) return "Your Robot Profile lists a mecanum drivetrain with a dual-intake conveyor feeding a turret-mounted launcher — fast and flexible, but keep an eye on the intake jamming issue you noted, it's the main risk to scoring consistency right now.";
+      return "In the real app, I'd answer this using your actual robot profile, scouting log, and match history — this demo can only show a few canned examples. Sign up to try it with your own team's data!";
+    }
+
+    document.getElementById('demoChatSend').addEventListener('click', sendDemoChat);
+    document.getElementById('demoChatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDemoChat(); });
+    async function sendDemoChat() {
+      const input = document.getElementById('demoChatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      chatMessages.push({ role: 'user', text });
+      input.value = '';
+      renderChat();
+      await new Promise(r => setTimeout(r, 700));
+      chatMessages.push({ role: 'assistant', text: cannedChatReply(text) });
+      renderChat();
+    }
+
+    // ===== notebook =====
+    const notebookEntries = [
+      { date: '10 Feb 2026', title: 'Intake redesign, week 4', task: "Rebuilt the intake with a steeper entry angle after last week's jamming issue. Tested with 20 game pieces, only 1 jam.", feedback: 'Good engineering process — you identified a real problem, made one focused change, and quantified the result (20 pieces, 1 jam) instead of just saying "it works better now." Consider logging your jam rate *before* the redesign too, so judges can see the improvement as a comparison.' },
+      { date: '24 Feb 2026', title: 'Autonomous path tuning', task: 'Adjusted encoder-based movement to correct for the robot drifting right during the auto scoring routine.', feedback: 'Nice diagnosis — tracing the drift back to one underpowered motor rather than re-tuning blindly shows real debugging skill. Note *how* you isolated the motor in your write-up, since that methodology is exactly what judges want to see.' }
+    ];
+    document.getElementById('demoNotebookList').innerHTML = notebookEntries.map(e => `
+      <div class="entry-card" style="margin-bottom:14px;">
+        <div class="entry-head">
+          <div><div class="entry-title">${escapeHtml(e.title)}</div><div class="entry-meta">${escapeHtml(e.date)}</div></div>
+        </div>
+        <div style="font-size:13.5px; line-height:1.6; margin-top:8px;">${escapeHtml(e.task)}</div>
+        <div class="ai-block" style="margin-top:14px;"><div class="ai-label"><span class="ai-dot"></span>AI FEEDBACK</div><div class="ai-body">${escapeHtml(e.feedback)}</div></div>
+      </div>`).join('');
+
+    // ===== roster =====
+    const members = [
+      { name: 'Jordan Lee', role: 'Owner', joined: 'Jan 2026', owner: true },
+      { name: 'Sam Rivera', role: 'Programmer', joined: 'Jan 2026' },
+      { name: 'Casey Kim', role: 'Driver', joined: 'Feb 2026' }
+    ];
+    document.getElementById('demoMembersList').innerHTML = members.map(m => `
+      <div class="member-card">
+        <div class="member-avatar${m.owner ? ' owner' : ''}">${escapeHtml(m.name.slice(0, 1))}</div>
+        <div class="member-main">
+          <div class="member-name-row">${escapeHtml(m.name)} ${m.owner ? '<span title="Owner">👑</span>' : ''}</div>
+          <div class="member-meta">Joined ${escapeHtml(m.joined)}</div>
+        </div>
+        <div class="badge accent">${escapeHtml(m.role)}</div>
+      </div>`).join('');
+
+    // ===== checklist =====
+    const checklist = [
+      { text: 'Battery charged (and spare packed)', checked: true },
+      { text: 'Robot weighed and inspected', checked: true },
+      { text: 'Driver station / controller charged & paired', checked: false },
+      { text: 'Toolkit packed (spare screws, zip ties, tape)', checked: true },
+      { text: 'Practiced autonomous & driver period', checked: false }
+    ];
+    function renderChecklist() {
+      document.getElementById('demoChecklistCard').innerHTML = checklist.map((item, i) => `
+        <div class="checklist-item ${item.checked ? 'checked' : ''}">
+          <input type="checkbox" id="demoChk${i}" ${item.checked ? 'checked' : ''}>
+          <label for="demoChk${i}">${escapeHtml(item.text)}</label>
+        </div>`).join('');
+      checklist.forEach((item, i) => {
+        document.getElementById(`demoChk${i}`).addEventListener('change', (e) => {
+          item.checked = e.target.checked;
+          renderChecklist();
+        });
+      });
+    }
+    renderChecklist();
+  </script>
+
+</body>
+</html>

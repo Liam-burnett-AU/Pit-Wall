@@ -6,6 +6,7 @@ Live at **[pit-wall-digital.lbdev.tech](https://pit-wall-digital.lbdev.tech)**.
 
 ## Features
 
+- **Demo mode** — a "Try the demo" link on the login page opens a self-contained page with realistic example data across every feature (dashboard, robot profile, scouting, schedule, events with AI analysis, AI chat, notebook, roster, checklist). No account needed, nothing is saved, and no real AI calls are made — it's plain HTML/JS with canned data, deliberately kept independent of Firebase so it works even if a visitor's network blocks Google/Firebase domains.
 - **Light/dark theme** — follows your system setting by default; toggle it from the sidebar (or the login page) and it's remembered from then on.
 - **Team accounts** — create a team (Firebase Auth + team number/name looked up live from [FTCScout](https://ftcscout.org) as you type), or join an existing one with a join code from a teammate. Everyone on a team shares the same data — robot profile, scouting log, chat, notebook, checklist — under their own individual login. Only one Pit Wall team can exist per real FTC team number — creating a second one for the same number is blocked, with a prompt to use "Join Team" instead (or contact support if nobody on the team has signed up yet). A verification link is emailed on signup (Settings shows a reminder banner and a resend button until you click it).
 - **Team Roster** — see everyone signed into your team, share/regenerate the join code, and set each person's name and role. Roles are otherwise descriptive only (any member can edit or remove any other member) except one enforced rule: every team must always keep at least one Owner, so removing or demoting the last Owner is blocked until someone else is made Owner first.
@@ -38,6 +39,7 @@ Pit Wall is a static site — plain HTML/CSS/JS, no build step, no framework. It
 
 ```
 index.html                  Login / signup
+demo.html                    Self-contained demo with example data — no login
 dashboard.html               Team dashboard
 robot-profile.html          Robot profile form
 scouting.html                Opponent scouting log

@@ -13,7 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // Bump this on every deployed change — shown on the Settings page.
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.0";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDxEHi2ug0DvkzPR06EKdXYtJ69KSGUmus",
