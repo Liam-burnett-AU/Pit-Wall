@@ -6,13 +6,14 @@ Live at **[pit-wall-digital.lbdev.tech](https://pit-wall-digital.lbdev.tech)**.
 
 ## Features
 
+**Getting in:**
+
 - **Demo mode** — a "Try the demo" link on the login page opens a self-contained page with realistic example data across every feature (dashboard, robot profile, scouting, schedule, events with AI analysis, AI chat, notebook, roster, checklist). No account needed, nothing is saved, and no real AI calls are made — it's plain HTML/JS with canned data, deliberately kept independent of Firebase so it works even if a visitor's network blocks Google/Firebase domains.
-- **Contact form** — a no-login-required page for bug reports/feature ideas/questions, linked from the login page and Help. Posts to a Cloudflare Worker that relays it to a Discord forum thread and an email notification.
-- **Light/dark theme** — follows your system setting by default; toggle it from the sidebar (or the login page) and it's remembered from then on.
 - **Team accounts** — create a team (Firebase Auth + team number/name looked up live from [FTCScout](https://ftcscout.org) as you type), or join an existing one with a join code from a teammate. Everyone on a team shares the same data — robot profile, scouting log, chat, notebook, checklist — under their own individual login. Only one Pit Wall team can exist per real FTC team number — creating a second one for the same number is blocked, with a prompt to use "Join Team" instead (or contact support if nobody on the team has signed up yet). A verification link is emailed on signup (Settings shows a reminder banner and a resend button until you click it).
 - **Team Roster** — see everyone signed into your team, share/regenerate the join code, and set each person's name and role. Roles are otherwise descriptive only (any member can edit or remove any other member) except one enforced rule: every team must always keep at least one Owner, so removing or demoting the last Owner is blocked until someone else is made Owner first.
-- **Unsaved-changes warning** — the Robot Profile, Scouting, Engineering Notebook, and Team Info forms warn before you navigate away (back button, closing the tab, or clicking elsewhere in the app) with unsaved edits.
-- **Help** — a plain-English explainer of what FTC is, an onboarding walkthrough, a glossary of terms used around the app, and answers to common questions — for anyone using Pit Wall without an FTC background.
+
+**The app itself:**
+
 - **Dashboard** — quick links and a snapshot of your robot profile.
 - **Robot profile** — log your drivetrain, game piece mechanism, and autonomous routine; this feeds the AI chat and event analysis.
 - **Scouting** — log opponent teams you see at events (drivetrain, scoring capability, driver skill, notes), with a driver-skill chart and CSV export.
@@ -22,6 +23,13 @@ Live at **[pit-wall-digital.lbdev.tech](https://pit-wall-digital.lbdev.tech)**.
 - **Engineering Notebook** — log session entries and get instant AI feedback on each one (shown right in the list, no need to open anything), upload photos of physical notebook pages for AI feedback, upload a finished PDF/Word notebook for a holistic AI review, or have the AI pull your robot profile and every logged session together into a complete, judge-ready notebook write-up you can download.
 - **Pit Checklist** — a customisable pre-competition checklist.
 - **Settings** — manage your account, team info, and chat history; see roughly how much data your team has stored (in MB) with a button to wipe it all while keeping every login, or delete just your own account (your team's shared data stays, since teammates may still need it); shows the current app version.
+
+**Cutting across all of it:**
+
+- **Light/dark theme** — follows your system setting by default; toggle it from the sidebar (or the login page) and it's remembered from then on.
+- **Unsaved-changes warning** — the Robot Profile, Scouting, Engineering Notebook, and Team Info forms warn before you navigate away (back button, closing the tab, or clicking elsewhere in the app) with unsaved edits.
+- **Help** — a plain-English explainer of what FTC is, an onboarding walkthrough, a glossary of terms used around the app, and answers to common questions — for anyone using Pit Wall without an FTC background.
+- **Contact form** — a no-login-required page for bug reports/feature ideas/questions, linked from the login page and Help. Posts to a Cloudflare Worker that relays it to a Discord forum thread and an email notification.
 
 ## Tech stack
 
@@ -83,7 +91,9 @@ npx wrangler secret put FTC_EVENTS_API_KEY
 
 Without these set, `/api/groq` and `/api/ftc-events` respond `500` with a "Server misconfigured" error rather than silently failing.
 
-`contact.html` has its own `CONTACT_API_URL` constant (not in `assets/app.js` — this page deliberately has zero Firebase dependency, see below) pointing at a deployed instance of [LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API), a separate Worker with its own secrets; update it to your own Worker's URL.
+`contact.html` and `demo.html` deliberately don't import `assets/app.js` at all, even though it holds the shared `escapeHtml`/`toast`/theme helpers they'd otherwise reuse — that module also imports the Firebase Firestore SDK (for `resolveTeamId`/`getTeamMembers`), and these two pages have no login, so there's no reason for them to depend on Firebase loading successfully just to render. Each inlines its own tiny copies of the handful of helpers it needs instead.
+
+`contact.html` has its own `CONTACT_API_URL` constant pointing at a deployed instance of [LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API), a separate Worker with its own secrets; update it to your own Worker's URL.
 
 ### Firestore rules
 
