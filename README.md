@@ -25,17 +25,17 @@ Live at **[pit-wall-digital.lbdev.tech](https://pit-wall-digital.lbdev.tech)**.
 
 ## Tech stack
 
-Pit Wall is a static site — plain HTML/CSS/JS, no build step, no framework. It's designed to run entirely on free tiers:
+The frontend is plain HTML/CSS/JS, no build step, no framework — but it's no longer a *pure* static site: `src/worker.js` is a real Cloudflare Worker that serves those static files AND proxies the two third-party APIs that need a server-side secret, so the site and its backend are one deployment instead of three separate ones.
 
 | Purpose | Service |
 |---|---|
 | Auth + database | [Firebase](https://firebase.google.com/) (Auth + Firestore) |
 | File storage (notebook photos/docs) | [Cloudinary](https://cloudinary.com/) (unsigned uploads) |
-| AI chat completions | [Groq](https://groq.com/), called through a Cloudflare Worker proxy so the API key never reaches the browser |
-| Official FTC event/team/match data | [FIRST's FTC Events API](https://ftc-events.firstinspires.org/api-docs), called through a second Cloudflare Worker proxy |
+| AI chat completions | [Groq](https://groq.com/), proxied at `/api/groq` by this repo's own `src/worker.js` — the API key is a Worker secret, never sent to the browser |
+| Official FTC event/team/match data | [FIRST's FTC Events API](https://ftc-events.firstinspires.org/api-docs), proxied at `/api/ftc-events` the same way |
 | Community FTC stats (OPR/DPR/CCWM, team profiles) | [FTCScout API](https://api.ftcscout.org/) — public and CORS-enabled, called directly from the browser |
-| Hosting | A [Cloudflare Worker with static assets](https://developers.cloudflare.com/workers/static-assets/) (`wrangler deploy`, config in `wrangler.jsonc`), git-connected to this repo |
-| Contact form | Posts to a separate Cloudflare Worker ([LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API)) that relays it to Discord + email |
+| Hosting + API | A single [Cloudflare Worker with static assets](https://developers.cloudflare.com/workers/static-assets/) (`wrangler deploy`, config in `wrangler.jsonc`, code in `src/worker.js`), git-connected to this repo |
+| Contact form | Posts to a *separate* Cloudflare Worker ([LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API)) that relays it to Discord + email — kept separate since it's a shared personal service, not Pit Wall-specific |
 
 ## Project structure
 
@@ -58,7 +58,8 @@ assets/style.css              Shared design system (tokens, layout, components)
 assets/app.js                 Shared config + helpers (Firebase config, nav, toasts,
                               markdown rendering, API calls) imported by every page
 firestore.rules               Firestore security rules — see below
-wrangler.jsonc                 Cloudflare Worker config (static asset hosting)
+src/worker.js                   Cloudflare Worker: serves the static site + proxies Groq/FTC Events
+wrangler.jsonc                 Cloudflare Worker config (entry point, static assets, secrets)
 .assetsignore                  Files excluded from the public static asset upload — see Deployment
 ```
 
@@ -69,11 +70,20 @@ Every page pulls its Firebase config, third-party API helpers, toast notificatio
 To run your own copy, set these in **`assets/app.js`**:
 
 - `firebaseConfig` — your Firebase project config (this is safe to be public; real access control is enforced by `firestore.rules`, not by hiding this).
-- `GROQ_PROXY_URL` / `FTC_EVENTS_PROXY_URL` — URLs of your own deployed Cloudflare Worker proxies. These proxies exist so the Groq API key and FTC Events API credentials stay server-side as Worker secrets, never in this repo.
 - `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_UPLOAD_PRESET` — your Cloudinary cloud name and an **unsigned** upload preset.
 - `FTC_EVENTS_SEASON` — the season FTC Events API calls default to (e.g. `"2026"` for the 2026-2027 season).
 
-`contact.html` has its own `CONTACT_API_URL` constant (not in `assets/app.js` — this page deliberately has zero Firebase dependency, see below) pointing at a deployed instance of [LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API); update it to your own Worker's URL.
+`GROQ_PROXY_URL` (`/api/groq`) and `FTC_EVENTS_PROXY_URL` (`/api/ftc-events`) point at routes on this same Worker (`src/worker.js`) — you shouldn't need to touch these unless you change the routes. What you do need to set are the **secrets those routes read from `env`**, in the Cloudflare dashboard for your Worker (**Settings → Variables and Secrets**) or via Wrangler:
+
+```
+npx wrangler secret put GROQ_API_KEY
+npx wrangler secret put FTC_EVENTS_USERNAME
+npx wrangler secret put FTC_EVENTS_API_KEY
+```
+
+Without these set, `/api/groq` and `/api/ftc-events` respond `500` with a "Server misconfigured" error rather than silently failing.
+
+`contact.html` has its own `CONTACT_API_URL` constant (not in `assets/app.js` — this page deliberately has zero Firebase dependency, see below) pointing at a deployed instance of [LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API), a separate Worker with its own secrets; update it to your own Worker's URL.
 
 ### Firestore rules
 
@@ -85,15 +95,18 @@ firebase deploy --only firestore:rules
 
 ## Deployment
 
-This is a static site with no build step, deployed as a **Cloudflare Worker with static assets** (`wrangler.jsonc` → `assets.directory: "."`, the whole repo root). It's git-connected via Cloudflare's Workers Builds — push to `main` and it runs `npx wrangler deploy` automatically.
+No build step, deployed as a **Cloudflare Worker** (`wrangler.jsonc` → `main: "src/worker.js"`) with the whole repo root also served as static assets (`assets.directory: "."`) for anything that isn't an `/api/*` route. It's git-connected via Cloudflare's Workers Builds — push to `main` and it runs `npx wrangler deploy` automatically.
 
-`.assetsignore` (gitignore-style syntax) controls what actually gets uploaded as a public static asset — **this matters**: without it, wrangler uploads *every* file under the assets directory, `.git` included, which on this project's first deploy publicly exposed the entire commit history at the live URL (`/.git/config`, `/.git/objects/*`, etc., all served as plain files). Any new top-level file/folder that shouldn't be public (config, docs, tooling) needs adding to `.assetsignore`, not just `.gitignore` — the two lists serve different purposes and aren't interchangeable.
+This is deliberately **not** a static-assets-only deployment (no `main` entry, just `assets`) — that mode has nowhere to hold a secret, since only actual Worker code gets an `env` with bindings/secrets on it. `src/worker.js` is what makes `GROQ_API_KEY` etc. possible at all; see Configuration above for setting them.
+
+`.assetsignore` (gitignore-style syntax) controls what actually gets uploaded as a public static asset — **this matters**: without it, wrangler uploads *every* file under the assets directory, `.git` included, which on this project's first deploy publicly exposed the entire commit history at the live URL (`/.git/config`, `/.git/objects/*`, etc., all served as plain files). Any new top-level file/folder that shouldn't be public (config, docs, tooling, `src/`) needs adding to `.assetsignore`, not just `.gitignore` — the two lists serve different purposes and aren't interchangeable.
 
 One-time setup for a new copy of this project (done once in the Cloudflare dashboard, not from this repo):
 
 1. **Cloudflare dashboard → Workers & Pages → Create → Workers → Deploy via Git**, pick this repo (or connect Workers Builds from an existing Worker's Settings → Build tab).
 2. Deploy command: `npx wrangler deploy` (this is what actually reads `wrangler.jsonc` and `.assetsignore`).
-3. **Custom domains** tab on the Worker → add your domain and follow the DNS prompts (Cloudflare manages this instead of a `CNAME` file in the repo, which is a GitHub Pages convention this project no longer uses).
+3. **Settings → Variables and Secrets** on the Worker → add `GROQ_API_KEY`, `FTC_EVENTS_USERNAME`, `FTC_EVENTS_API_KEY` as **Secret** type (not plain text Variables — secrets aren't shown again after saving and aren't readable from the dashboard, which is the point).
+4. **Custom domains** tab on the Worker → add your domain and follow the DNS prompts (Cloudflare manages this instead of a `CNAME` file in the repo, which is a GitHub Pages convention this project no longer uses).
 
 ## Versioning
 

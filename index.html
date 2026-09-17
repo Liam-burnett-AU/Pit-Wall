@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>(function(){try{var t=localStorage.getItem('pitwall-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Pit Wall — Team Access</title>
-<link rel="stylesheet" href="assets/style.css?v=9">
+<link rel="stylesheet" href="assets/style.css?v=10">
 <style>
   body { overflow-x: hidden; }
   .split {
@@ -302,7 +302,7 @@
       sendEmailVerification
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-    import { firebaseConfig, toast, wireTeamLookup, getTheme, setTheme, generateJoinCode } from "./assets/app.js?v=9";
+    import { firebaseConfig, toast, wireTeamLookup, getTheme, setTheme, generateJoinCode } from "./assets/app.js?v=10";
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);

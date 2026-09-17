@@ -20,3 +20,6 @@ README.md
 firestore.rules
 .claude
 CLAUDE.md
+
+# Worker source — runs server-side, isn't a client asset.
+src

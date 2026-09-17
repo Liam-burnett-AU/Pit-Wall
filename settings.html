@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>(function(){try{var t=localStorage.getItem('pitwall-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Pit Wall — Settings</title>
-<link rel="stylesheet" href="assets/style.css?v=9">
+<link rel="stylesheet" href="assets/style.css?v=10">
 <style>
   h1.page-title { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.5px; margin-bottom: 30px; }
   .settings-section { margin-bottom: 20px; }
@@ -164,7 +164,7 @@
       reauthenticateWithCredential, EmailAuthProvider, deleteUser, signOut, sendEmailVerification
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-    import { firebaseConfig, toast, renderNav, wireNav, setTeamChip, wireTeamLookup, APP_VERSION, resolveTeamId, getTeamMembers, countOwners, warnOnUnsavedChanges } from "./assets/app.js?v=9";
+    import { firebaseConfig, toast, renderNav, wireNav, setTeamChip, wireTeamLookup, APP_VERSION, resolveTeamId, getTeamMembers, countOwners, warnOnUnsavedChanges } from "./assets/app.js?v=10";
 
     document.getElementById('versionLine').textContent = `Pit Wall v${APP_VERSION}`;
 

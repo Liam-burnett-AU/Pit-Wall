@@ -13,7 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // Bump this on every deployed change — shown on the Settings page.
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.8.0";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDxEHi2ug0DvkzPR06EKdXYtJ69KSGUmus",
@@ -24,17 +24,19 @@ export const firebaseConfig = {
   appId: "1:262360112421:web:828d6f1ff00024a3be0ecc"
 };
 
-// Groq (chat completions) via a Cloudflare Worker proxy — the Groq API key
-// lives as a Worker secret, never here or sent to the browser.
-export const GROQ_PROXY_URL = "https://groq-proxy.lbdevelopment.workers.dev";
+// Groq (chat completions) and FIRST's official FTC Events API are both
+// proxied by this same site's own Worker (src/worker.js) at these
+// same-origin routes — GROQ_API_KEY / FTC_EVENTS_USERNAME /
+// FTC_EVENTS_API_KEY live there as Worker secrets, never here or sent to
+// the browser. These used to point at two separate Worker deployments;
+// now it's all one Worker (see wrangler.jsonc).
+export const GROQ_PROXY_URL = "/api/groq";
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 // Vision model for photo feedback — check console.groq.com/docs/models if
 // this ever stops working.
 export const VISION_MODEL = "qwen/qwen3.6-27b";
 
-// FIRST's official FTC Events API, via a separate Worker proxy — the
-// FTC_EVENTS_USERNAME / FTC_EVENTS_API_KEY live as Worker secrets.
-export const FTC_EVENTS_PROXY_URL = "https://ftc-events-proxy.lbdevelopment.workers.dev";
+export const FTC_EVENTS_PROXY_URL = "/api/ftc-events";
 // Season year the competition started in — e.g. the 2026-2027 season is "2026".
 export const FTC_EVENTS_SEASON = "2026";
 
@@ -146,7 +148,7 @@ export async function ftcScoutFetch(path) {
 }
 
 export async function ftcEventsFetch(path) {
-  const res = await fetch(`${FTC_EVENTS_PROXY_URL}/?path=${encodeURIComponent(path)}`);
+  const res = await fetch(`${FTC_EVENTS_PROXY_URL}?path=${encodeURIComponent(path)}`);
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
     throw new Error(`FTC Events proxy returned ${res.status}${errBody ? ': ' + errBody : ''}`);
