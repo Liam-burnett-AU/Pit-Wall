@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){try{var t=localStorage.getItem('pitwall-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<title>Pit Wall — Contact</title>
+<link rel="stylesheet" href="assets/style.css?v=9">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 20px; }
+  .contact-wrap { width: 100%; max-width: 460px; }
+  .contact-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 30px; justify-content: center; }
+  .contact-brand .mark {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; font-family: var(--font-mono);
+  }
+  .contact-brand .name { font-weight: 700; font-size: 17px; }
+  .contact-card h1 { font-size: 21px; margin-bottom: 6px; }
+  .contact-card > p.sub { color: var(--text-muted); font-size: 13.5px; margin-bottom: 24px; }
+  .back-link { display: block; text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+  <div id="toastContainer" aria-live="polite" aria-atomic="false"></div>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="Switch to light theme" style="position:fixed; top:20px; right:20px; z-index:50;">
+    <span class="icon-sun" aria-hidden="true">☀️</span>
+    <span class="icon-moon" aria-hidden="true">🌙</span>
+  </button>
+
+  <div class="contact-wrap">
+    <div class="contact-brand">
+      <span class="mark">PW</span>
+      <span class="name">Pit Wall</span>
+    </div>
+
+    <div class="card contact-card">
+      <h1>Get in touch</h1>
+      <p class="sub">Bug report, feature idea, or just a question — this goes straight to me.</p>
+
+      <form id="contactForm" onsubmit="return false;">
+        <div class="field">
+          <label for="contactName">Name</label>
+          <input type="text" id="contactName" autocomplete="name" placeholder="Your name">
+        </div>
+        <div class="field">
+          <label for="contactEmail">Email</label>
+          <input type="email" id="contactEmail" autocomplete="email" placeholder="you@example.com">
+          <div class="hint">So I can reply — this isn't shared with anyone else.</div>
+        </div>
+        <div class="field">
+          <label for="contactSubject">Subject <span class="optional">(optional)</span></label>
+          <input type="text" id="contactSubject" placeholder="What's this about?">
+        </div>
+        <div class="field">
+          <label for="contactMessage">Message</label>
+          <textarea id="contactMessage" placeholder="What's up?" style="min-height:130px;"></textarea>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block" id="contactSendBtn">Send Message</button>
+        <div class="status-msg" id="contactStatus"></div>
+      </form>
+    </div>
+
+    <a href="index.html" class="back-link">← Back to Pit Wall</a>
+  </div>
+
+  <script type="module">
+    // Standalone page, deliberately with no Firebase dependency — it
+    // doesn't need auth or Firestore, so it shouldn't need to load them.
+
+    function escapeHtml(str) {
+      return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function toast(message, type = 'success', duration = 3500) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.setAttribute('role', 'status');
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, duration);
+    }
+    const THEME_STORAGE_KEY = 'pitwall-theme';
+    function getTheme() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem(THEME_STORAGE_KEY, theme); } catch (err) {}
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    }
+    setTheme(getTheme());
+    document.getElementById('themeToggle').addEventListener('click', () => setTheme(getTheme() === 'light' ? 'dark' : 'light'));
+
+    const CONTACT_API_URL = 'https://worker.lbdev.app/api/LB-Dev-Help-Email-Discord-Webhook-API/';
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function setStatus(text, type) {
+      const el = document.getElementById('contactStatus');
+      el.textContent = text;
+      el.className = 'status-msg ' + type;
+    }
+
+    document.getElementById('contactSendBtn').addEventListener('click', async () => {
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const subject = document.getElementById('contactSubject').value.trim();
+      const message = document.getElementById('contactMessage').value.trim();
+      const btn = document.getElementById('contactSendBtn');
+
+      if (!name || !email || !message) {
+        setStatus('Name, email, and a message are required.', 'error');
+        return;
+      }
+      if (!EMAIL_PATTERN.test(email)) {
+        setStatus("That doesn't look like a valid email address.", 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      setStatus('', '');
+
+      try {
+        const res = await fetch(CONTACT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, subject, message })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Something went wrong (${res.status}).`);
+
+        setStatus('Message sent — thanks, I\'ll get back to you soon.', 'success');
+        toast('Message sent.', 'success');
+        document.getElementById('contactForm').reset();
+
+      } catch (err) {
+        console.error('Contact form error:', err);
+        setStatus("Couldn't send — check your connection and try again, or email " + escapeHtml('liamburnett40@gmail.com') + " directly.", 'error');
+        toast("Couldn't send message.", 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+      }
+    });
+
+    document.getElementById('contactMessage').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) document.getElementById('contactSendBtn').click();
+    });
+  </script>
+
+</body>
+</html>

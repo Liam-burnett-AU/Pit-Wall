@@ -7,6 +7,7 @@ Live at **[pit-wall-digital.lbdev.tech](https://pit-wall-digital.lbdev.tech)**.
 ## Features
 
 - **Demo mode** — a "Try the demo" link on the login page opens a self-contained page with realistic example data across every feature (dashboard, robot profile, scouting, schedule, events with AI analysis, AI chat, notebook, roster, checklist). No account needed, nothing is saved, and no real AI calls are made — it's plain HTML/JS with canned data, deliberately kept independent of Firebase so it works even if a visitor's network blocks Google/Firebase domains.
+- **Contact form** — a no-login-required page for bug reports/feature ideas/questions, linked from the login page and Help. Posts to a Cloudflare Worker that relays it to a Discord forum thread and an email notification.
 - **Light/dark theme** — follows your system setting by default; toggle it from the sidebar (or the login page) and it's remembered from then on.
 - **Team accounts** — create a team (Firebase Auth + team number/name looked up live from [FTCScout](https://ftcscout.org) as you type), or join an existing one with a join code from a teammate. Everyone on a team shares the same data — robot profile, scouting log, chat, notebook, checklist — under their own individual login. Only one Pit Wall team can exist per real FTC team number — creating a second one for the same number is blocked, with a prompt to use "Join Team" instead (or contact support if nobody on the team has signed up yet). A verification link is emailed on signup (Settings shows a reminder banner and a resend button until you click it).
 - **Team Roster** — see everyone signed into your team, share/regenerate the join code, and set each person's name and role. Roles are otherwise descriptive only (any member can edit or remove any other member) except one enforced rule: every team must always keep at least one Owner, so removing or demoting the last Owner is blocked until someone else is made Owner first.
@@ -33,13 +34,15 @@ Pit Wall is a static site — plain HTML/CSS/JS, no build step, no framework. It
 | AI chat completions | [Groq](https://groq.com/), called through a Cloudflare Worker proxy so the API key never reaches the browser |
 | Official FTC event/team/match data | [FIRST's FTC Events API](https://ftc-events.firstinspires.org/api-docs), called through a second Cloudflare Worker proxy |
 | Community FTC stats (OPR/DPR/CCWM, team profiles) | [FTCScout API](https://api.ftcscout.org/) — public and CORS-enabled, called directly from the browser |
-| Hosting | GitHub Pages, with a custom domain via `CNAME` |
+| Hosting | [Cloudflare Pages](https://pages.cloudflare.com/), git-connected to this repo |
+| Contact form | Posts to a separate Cloudflare Worker ([LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API)) that relays it to Discord + email |
 
 ## Project structure
 
 ```
 index.html                  Login / signup
 demo.html                    Self-contained demo with example data — no login
+contact.html                  Contact form (no login required)
 dashboard.html               Team dashboard
 robot-profile.html          Robot profile form
 scouting.html                Opponent scouting log
@@ -68,6 +71,8 @@ To run your own copy, set these in **`assets/app.js`**:
 - `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_UPLOAD_PRESET` — your Cloudinary cloud name and an **unsigned** upload preset.
 - `FTC_EVENTS_SEASON` — the season FTC Events API calls default to (e.g. `"2026"` for the 2026-2027 season).
 
+`contact.html` has its own `CONTACT_API_URL` constant (not in `assets/app.js` — this page deliberately has zero Firebase dependency, see below) pointing at a deployed instance of [LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API); update it to your own Worker's URL.
+
 ### Firestore rules
 
 Every team's data collections are keyed by a `teamId`, and `firestore.rules` locks them to "only someone on that team can read or write it" — team membership is looked up from a `members/{uid}` doc mapping each signed-in person to their team. The one deliberate exception is the `teams` collection itself, which allows public reads: joining a team by code has to look up the team *before* the new member has signed in, and this project has no backend function to gate that lookup more tightly. Team name/number aren't sensitive (they're public via FTCScout anyway); writes still require being on the team. `firestore.rules` isn't deployed automatically — paste it into **Firebase Console → Firestore Database → Rules**, or run:
@@ -78,7 +83,13 @@ firebase deploy --only firestore:rules
 
 ## Deployment
 
-This is a static site with no build step — GitHub Pages serves the `main` branch directly. Push to `main` and it's live.
+This is a static site with no build step, hosted on **Cloudflare Pages**, connected directly to this repo. Push to `main` and Cloudflare rebuilds and deploys automatically — no build command, output directory is the repo root (`/`).
+
+One-time setup for a new copy of this project (done once in the Cloudflare dashboard, not from this repo):
+
+1. **Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git**, pick this repo.
+2. Build settings: **Framework preset:** None, **Build command:** (leave blank), **Build output directory:** `/`.
+3. **Custom domains** tab on the Pages project → add your domain and follow the DNS prompts (Cloudflare manages this instead of a `CNAME` file in the repo, which is a GitHub Pages convention this project no longer uses).
 
 ## Versioning
 
