@@ -34,7 +34,7 @@ Pit Wall is a static site — plain HTML/CSS/JS, no build step, no framework. It
 | AI chat completions | [Groq](https://groq.com/), called through a Cloudflare Worker proxy so the API key never reaches the browser |
 | Official FTC event/team/match data | [FIRST's FTC Events API](https://ftc-events.firstinspires.org/api-docs), called through a second Cloudflare Worker proxy |
 | Community FTC stats (OPR/DPR/CCWM, team profiles) | [FTCScout API](https://api.ftcscout.org/) — public and CORS-enabled, called directly from the browser |
-| Hosting | [Cloudflare Pages](https://pages.cloudflare.com/), git-connected to this repo |
+| Hosting | A [Cloudflare Worker with static assets](https://developers.cloudflare.com/workers/static-assets/) (`wrangler deploy`, config in `wrangler.jsonc`), git-connected to this repo |
 | Contact form | Posts to a separate Cloudflare Worker ([LB-Dev-Help-Email-Discord-Webhook-API](https://github.com/Liam-burnett-AU/LB-Dev-Help-Email-Discord-Webhook-API)) that relays it to Discord + email |
 
 ## Project structure
@@ -58,6 +58,8 @@ assets/style.css              Shared design system (tokens, layout, components)
 assets/app.js                 Shared config + helpers (Firebase config, nav, toasts,
                               markdown rendering, API calls) imported by every page
 firestore.rules               Firestore security rules — see below
+wrangler.jsonc                 Cloudflare Worker config (static asset hosting)
+.assetsignore                  Files excluded from the public static asset upload — see Deployment
 ```
 
 Every page pulls its Firebase config, third-party API helpers, toast notifications, and sidebar navigation from `assets/app.js`, and its visual design from `assets/style.css`, so there's one place to update either.
@@ -83,13 +85,15 @@ firebase deploy --only firestore:rules
 
 ## Deployment
 
-This is a static site with no build step, hosted on **Cloudflare Pages**, connected directly to this repo. Push to `main` and Cloudflare rebuilds and deploys automatically — no build command, output directory is the repo root (`/`).
+This is a static site with no build step, deployed as a **Cloudflare Worker with static assets** (`wrangler.jsonc` → `assets.directory: "."`, the whole repo root). It's git-connected via Cloudflare's Workers Builds — push to `main` and it runs `npx wrangler deploy` automatically.
+
+`.assetsignore` (gitignore-style syntax) controls what actually gets uploaded as a public static asset — **this matters**: without it, wrangler uploads *every* file under the assets directory, `.git` included, which on this project's first deploy publicly exposed the entire commit history at the live URL (`/.git/config`, `/.git/objects/*`, etc., all served as plain files). Any new top-level file/folder that shouldn't be public (config, docs, tooling) needs adding to `.assetsignore`, not just `.gitignore` — the two lists serve different purposes and aren't interchangeable.
 
 One-time setup for a new copy of this project (done once in the Cloudflare dashboard, not from this repo):
 
-1. **Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git**, pick this repo.
-2. Build settings: **Framework preset:** None, **Build command:** (leave blank), **Build output directory:** `/`.
-3. **Custom domains** tab on the Pages project → add your domain and follow the DNS prompts (Cloudflare manages this instead of a `CNAME` file in the repo, which is a GitHub Pages convention this project no longer uses).
+1. **Cloudflare dashboard → Workers & Pages → Create → Workers → Deploy via Git**, pick this repo (or connect Workers Builds from an existing Worker's Settings → Build tab).
+2. Deploy command: `npx wrangler deploy` (this is what actually reads `wrangler.jsonc` and `.assetsignore`).
+3. **Custom domains** tab on the Worker → add your domain and follow the DNS prompts (Cloudflare manages this instead of a `CNAME` file in the repo, which is a GitHub Pages convention this project no longer uses).
 
 ## Versioning
 

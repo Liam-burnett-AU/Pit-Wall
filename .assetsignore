@@ -1,0 +1,22 @@
+# Files excluded from the static asset upload when deploying with
+# `wrangler deploy` (assets.directory = "." in wrangler.jsonc).
+#
+# Without this, wrangler uploads EVERY file under the assets directory as
+# a publicly served static asset — including .git itself, which happened
+# on a real deploy and exposed the full commit history at the live URL.
+# Same gitignore-style syntax as .gitignore.
+
+.git
+.gitignore
+.github
+.wrangler
+wrangler.jsonc
+wrangler.toml
+node_modules
+package.json
+package-lock.json
+.assetsignore
+README.md
+firestore.rules
+.claude
+CLAUDE.md
